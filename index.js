@@ -1,7 +1,9 @@
-// index.js (Versão Final Corrigida)
+// index.js (Com o Chat incluído)
 const express = require('express');
 const cors = require('cors');
 const admin = require('firebase-admin');
+// Importante: Adicionar isto para ler o ficheiro .env onde vais por a chave
+require('dotenv').config(); 
 
 const serviceAccount = require('./serviceAccountKey.json');
 admin.initializeApp({
@@ -15,14 +17,16 @@ app.use(express.json());
 // --- 1. IMPORTAR AS ROTAS ---
 const calendarRoutes = require('./routes/calendarRoutes');
 const userRoutes = require('./routes/userRoutes');
-// ESTA É A QUE FALTA NO TEU ARQUIVO:
 const dashboardRoutes = require('./routes/dashboardRoutes'); 
+// [NOVO] Importar a rota do Chat
+const chatRoutes = require('./routes/chatRoutes'); 
 
 // --- 2. USAR AS ROTAS ---
 app.use('/api/calendar', calendarRoutes);
 app.use('/api/user', userRoutes);
-// ESTA TAMBÉM FALTA:
 app.use('/api/dashboard', dashboardRoutes);
+// [NOVO] Usar a rota do Chat
+app.use('/api/chat', chatRoutes);
 
 app.get('/', (req, res) => {
   res.send('Backend do Cordeal está a funcionar!');
