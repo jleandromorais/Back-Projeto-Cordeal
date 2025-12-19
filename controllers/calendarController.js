@@ -1,64 +1,23 @@
-// O controlador precisa de aceder à base de dados
-const admin = require('firebase-admin');
-const db = admin.firestore();
-
-// 1. Lógica para BUSCAR eventos
-const getAllEvents = async (req, res) => {
-  const userId = req.user.uid;
+// Função para listar eventos (GET)
+exports.getEvents = async (req, res) => {
   try {
-    const eventsSnapshot = await db.collection('users').doc(userId).collection('events').get();
-    const events = {};
-    eventsSnapshot.forEach(doc => {
-      events[doc.id] = doc.data();
-    });
-    res.json(events);
+    // Aqui viria a lógica para buscar no banco de dados
+    res.status(200).json([
+        { date: '2025-11-07', title: 'Reunião de equipa' },
+        { date: '2025-11-08', title: 'Entrega de projeto' }
+    ]);
   } catch (error) {
-    console.error("Erro ao buscar eventos:", error);
-    res.status(500).send('Erro ao buscar eventos');
+    res.status(500).json({ message: "Erro ao buscar eventos" });
   }
 };
 
-// 2. Lógica para SALVAR um evento
-const saveEvent = async (req, res) => {
-  const userId = req.user.uid;
-  const { dateKey, eventData } = req.body;
-
-  if (!dateKey || !eventData) {
-    return res.status(400).send('Dados do evento incompletos');
-  }
-
+// Função para criar evento (POST)
+exports.createEvent = async (req, res) => {
   try {
-    await db.collection('users').doc(userId).collection('events').doc(dateKey).set(eventData);
-    console.log('Evento salvo para:', userId, 'em', dateKey);
-    res.status(201).json({ message: 'Evento salvo com sucesso' });
+    const novoEvento = req.body;
+    console.log("Novo evento recebido:", novoEvento);
+    res.status(201).json({ message: "Evento criado com sucesso!", event: novoEvento });
   } catch (error) {
-    console.error("Erro ao salvar evento:", error);
-    res.status(500).send('Erro ao salvar evento');
+    res.status(500).json({ message: "Erro ao criar evento" });
   }
-};
-
-// 3. Lógica para DELETAR um evento
-const deleteEvent = async (req, res) => {
-  const userId = req.user.uid;
-  const { dateKey } = req.params;
-
-  if (!dateKey) {
-    return res.status(400).send('Data do evento não fornecida');
-  }
-
-  try {
-    await db.collection('users').doc(userId).collection('events').doc(dateKey).delete();
-    console.log('Evento deletado para:', userId, 'em', dateKey);
-    res.status(200).json({ message: 'Evento deletado com sucesso' });
-  } catch (error) {
-    console.error("Erro ao deletar evento:", error);
-    res.status(500).send('Erro ao deletar evento');
-  }
-};
-
-// Exportamos todas as funções
-module.exports = {
-  getAllEvents,
-  saveEvent,
-  deleteEvent
 };

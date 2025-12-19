@@ -1,14 +1,19 @@
-// Crie este novo ficheiro: routes/userRoutes.js
-
 const express = require('express');
 const router = express.Router();
 
-// Importamos o controlador e o middleware
+// Importar o controlador
 const userController = require('../controllers/userController');
-const { checkAuth } = require('../middleware/checkAuth');
 
-// Definimos a rota: GET /api/user/me
-// O 'checkAuth' protege a rota, e 'getUserData' responde
-router.get('/me', checkAuth, userController.getUserData);
+// Importar o middleware
+// SE o checkAuth der erro, podes comentar esta linha e a linha do router.get para testar
+const checkAuth = require('../middleware/checkAuth'); 
+
+// Rota GET /profile
+// Verificamos se 'userController.getUser' existe antes de usar
+if (!userController.getUser) {
+    console.error("ERRO CRÍTICO: userController.getUser não foi encontrado!");
+}
+
+router.get('/profile', checkAuth, userController.getUser);
 
 module.exports = router;

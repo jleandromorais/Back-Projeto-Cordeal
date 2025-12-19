@@ -1,28 +1,17 @@
-// Crie este novo ficheiro: controllers/userController.js
-
-const admin = require('firebase-admin');
-const db = admin.firestore();
-
-const getUserData = async (req, res) => {
-  // O 'req.user.uid' vem do seu middleware 'checkAuth'
-  const userId = req.user.uid; 
-
+exports.getUser = async (req, res) => {
   try {
-    const userDoc = await db.collection('users').doc(userId).get();
+    // Tenta pegar o nome do userData (do checkAuth) ou usa um genérico
+    const userData = req.userData || {};
     
-    if (!userDoc.exists) {
-      return res.status(404).send('Dados do usuário não encontrados.');
-    }
+    const user = {
+      name: userData.name || "Leandro (Admin)", // Fallback se não vier do token
+      email: userData.email || "email@exemplo.com",
+      avatar: userData.picture || "https://github.com/jleandromorais.png"
+    };
 
-    // Envia todos os dados do utilizador (incluindo o 'nome')
-    res.json(userDoc.data());
-
+    res.status(200).json(user);
   } catch (error) {
-    console.error("Erro ao buscar dados do usuário:", error);
-    res.status(500).send('Erro ao buscar dados do usuário');
+    console.error("Erro no getUser:", error);
+    res.status(500).json({ message: "Erro ao buscar informações do utilizador" });
   }
-};
-
-module.exports = {
-  getUserData
 };

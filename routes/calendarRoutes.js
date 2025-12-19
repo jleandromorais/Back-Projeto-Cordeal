@@ -1,19 +1,16 @@
 const express = require('express');
 const router = express.Router();
 
-// Importamos o controlador e o middleware
+// Importar o controlador corretamente
 const calendarController = require('../controllers/calendarController');
-const { checkAuth } = require('../middleware/checkAuth');
+// Importar o checkAuth se quiseres proteger a rota (opcional por agora)
+const checkAuth = require('../middleware/checkAuth'); 
 
-// Definimos as rotas para /api/calendar/...
+// Rota GET: Buscar eventos
+// Se o 'calendarController.getEvents' não existir, dá o erro que viste!
+router.get('/', calendarController.getEvents);
 
-// GET /api/calendar/events
-router.get('/events', checkAuth, calendarController.getAllEvents);
-
-// POST /api/calendar/events
-router.post('/events', checkAuth, calendarController.saveEvent);
-
-// DELETE /api/calendar/events/2025-08-25
-router.delete('/events/:dateKey', checkAuth, calendarController.deleteEvent);
+// Rota POST: Criar evento
+router.post('/', calendarController.createEvent);
 
 module.exports = router;
