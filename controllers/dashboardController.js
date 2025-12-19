@@ -3,30 +3,23 @@ const db = admin.firestore();
 
 // 1. Obter Métricas
 const getMetrics = async (req, res) => {
-  try {
-    // Retorna dados fictícios por enquanto
-    res.json({
-      questoesRespondidas: 12,
-      horasDedicadas: 5
-    });
-  } catch (error) {
-    console.error("Erro ao buscar métricas:", error);
-    res.status(500).send('Erro ao buscar métricas');
-  }
+  res.json({ questoesRespondidas: 12, horasDedicadas: 5 });
 };
 
-// 2. Obter Notas do Utilizador
+// 2. Obter Notas
 const getNotes = async (req, res) => {
+  console.log("🔥 Tentando buscar notas..."); // Log para debug
+
   try {
-    // CORREÇÃO CRÍTICA: Verifica se req.userData existe antes de usar
+    // BLINDAGEM: Se não houver dados, pára aqui em vez de crashar.
     if (!req.userData || !req.userData.uid) {
-      console.error("Erro: Dados do utilizador não encontrados no pedido.");
+      console.log("❌ Falha: Sem userData!");
       return res.status(401).json({ message: 'Utilizador não identificado.' });
     }
 
-    // AQUI ESTAVA O ERRO: Mudámos de req.user para req.userData
-    const userId = req.userData.uid; 
-    
+    const userId = req.userData.uid; // Agora é seguro ler
+    console.log("✅ Sucesso: UserID é", userId);
+
     const doc = await db.collection('users').doc(userId).get();
     
     if (doc.exists && doc.data().notes) {
@@ -35,30 +28,24 @@ const getNotes = async (req, res) => {
       res.json({ content: '' });
     }
   } catch (error) {
-    console.error("Erro ao buscar notas:", error);
+    console.error("☠️ Erro Fatal:", error);
     res.status(500).send('Erro ao buscar notas');
   }
 };
 
-// 3. Salvar Notas do Utilizador
+// 3. Salvar Notas
 const saveNotes = async (req, res) => {
   try {
-    // CORREÇÃO CRÍTICA: Verifica se req.userData existe
     if (!req.userData || !req.userData.uid) {
       return res.status(401).json({ message: 'Utilizador não identificado.' });
     }
 
-    // AQUI TAMBÉM: Mudámos de req.user para req.userData
     const userId = req.userData.uid;
     const { content } = req.body;
 
-    await db.collection('users').doc(userId).set({
-      notes: content
-    }, { merge: true });
-
+    await db.collection('users').doc(userId).set({ notes: content }, { merge: true });
     res.status(200).send('Notas salvas');
   } catch (error) {
-    console.error("Erro ao salvar notas:", error);
     res.status(500).send('Erro ao salvar notas');
   }
 };
