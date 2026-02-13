@@ -1,11 +1,17 @@
-// index.js (Com o Chat incluído)
+// index.js (Com o Chat incluído e Correção do Firebase)
 const express = require('express');
 const cors = require('cors');
 const admin = require('firebase-admin');
 // Importante: Adicionar isto para ler o ficheiro .env onde vais por a chave
 require('dotenv').config(); 
 
-const serviceAccount = require('./serviceAccountKey.json');
+// --- CORREÇÃO AQUI ---
+// Verifica se há uma variável de ambiente com as credenciais (para o Render)
+// Se não houver, tenta ler o ficheiro local (para o teu PC)
+const serviceAccount = process.env.FIREBASE_CREDENTIALS
+  ? JSON.parse(process.env.FIREBASE_CREDENTIALS)
+  : require('./serviceAccountKey.json');
+
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
 });
