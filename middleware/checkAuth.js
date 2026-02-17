@@ -10,7 +10,20 @@ module.exports = async (req, res, next) => {
        return res.status(401).json({ message: 'Token não fornecido!' });
     }
 
+    // Valida formato "Bearer TOKEN"
+    if (!authHeader.startsWith('Bearer ')) {
+       console.log("Bloqueio: Formato de token inválido.");
+       return res.status(401).json({ message: 'Formato de autenticação inválido. Use: Bearer TOKEN' });
+    }
+
     const token = authHeader.split(' ')[1];
+    
+    // Valida se o token não está vazio após o split
+    if (!token || token.trim() === '') {
+       console.log("Bloqueio: Token vazio após Bearer.");
+       return res.status(401).json({ message: 'Token não fornecido!' });
+    }
+
     const decodedToken = await admin.auth().verifyIdToken(token);
     
     // Guarda na gaveta correta

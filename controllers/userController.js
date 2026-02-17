@@ -33,7 +33,35 @@ exports.saveQuizResult = async (req, res) => {
     const userData = req.userData;
     const { moduleId, correctCount, totalQuestions, score } = req.body;
 
-    if (!moduleId) return res.status(400).json({ message: "ID do módulo faltando." });
+    // Validação robusta dos dados de entrada
+    if (!moduleId) {
+      return res.status(400).json({ message: "ID do módulo é obrigatório." });
+    }
+
+    if (correctCount === undefined || correctCount === null) {
+      return res.status(400).json({ message: "Número de questões corretas é obrigatório." });
+    }
+
+    if (totalQuestions === undefined || totalQuestions === null) {
+      return res.status(400).json({ message: "Total de questões é obrigatório." });
+    }
+
+    // Validações de tipo e valores
+    if (!Number.isInteger(correctCount) || correctCount < 0) {
+      return res.status(400).json({ message: "Número de questões corretas inválido." });
+    }
+
+    if (!Number.isInteger(totalQuestions) || totalQuestions <= 0) {
+      return res.status(400).json({ message: "Total de questões inválido." });
+    }
+
+    if (correctCount > totalQuestions) {
+      return res.status(400).json({ message: "Número de questões corretas não pode ser maior que o total." });
+    }
+
+    if (score !== undefined && (typeof score !== 'number' || score < 0 || score > 100)) {
+      return res.status(400).json({ message: "Score inválido (deve ser entre 0 e 100)." });
+    }
 
     console.log(`💾 Salvando quiz user: ${userData.uid} | Módulo: ${moduleId}`);
 
@@ -43,7 +71,7 @@ exports.saveQuizResult = async (req, res) => {
       moduleId: moduleId,
       correctCount: correctCount,
       totalQuestions: totalQuestions,
-      score: score,
+      score: score || Math.round((correctCount / totalQuestions) * 100),
       completedAt: new Date(),
       type: 'quiz'
     }, { merge: true });

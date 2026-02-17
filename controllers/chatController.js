@@ -34,11 +34,25 @@ exports.sendMessage = async (req, res) => {
 
     const { message } = req.body;
     
+    // Validação robusta
     if (!message) {
       return res.status(400).json({ error: "A mensagem não pode estar vazia." });
     }
 
-    console.log(`📩 Recebido: "${message}"`);
+    if (typeof message !== 'string') {
+      return res.status(400).json({ error: "A mensagem deve ser uma string." });
+    }
+
+    if (message.trim() === '') {
+      return res.status(400).json({ error: "A mensagem não pode conter apenas espaços." });
+    }
+
+    // Limite de tamanho (10KB)
+    if (message.length > 10 * 1024) {
+      return res.status(400).json({ error: "Mensagem muito longa (máximo 10KB)." });
+    }
+
+    console.log(`📩 Recebido: "${message.substring(0, 100)}${message.length > 100 ? '...' : ''}"`);
     console.log("🤖 A pensar...");
 
     // Enviar para a IA

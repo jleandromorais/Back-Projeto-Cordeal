@@ -6,11 +6,10 @@ const calendarController = require('../controllers/calendarController');
 // Importar o checkAuth se quiseres proteger a rota (opcional por agora)
 const checkAuth = require('../middleware/checkAuth'); 
 
-// Rota GET: Buscar eventos
-// Se o 'calendarController.getEvents' não existir, dá o erro que viste!
-router.get('/', calendarController.getEvents);
+// Rota GET: Buscar eventos (protegida)
+router.get('/', checkAuth, calendarController.getEvents);
 
-// Rota POST: Criar evento
-router.post('/', calendarController.createEvent);
+// Rota POST: Criar evento (protegida)
+router.post('/', checkAuth, calendarController.createEvent);
 
 module.exports = router;

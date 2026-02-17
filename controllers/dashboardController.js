@@ -5,86 +5,66 @@ const db = admin.firestore();
 const getMetrics = async (req, res) => {
   try {
     const userId = req.userData.uid;
-    const userDoc = await db.collection('users').doc(userId).get();
+
+    // Busca as atividades concluídas da sub-collection 'activities'
+    const activitiesSnapshot = await db.collection('users').doc(userId).collection('activities').get();
 
     // Valores padrão (Zero) se o utilizador for novo
-    let data = {
-      stats: {
-        questoesRespondidas: 0,
-        questoesCertas: 0,
-        horasDedicadas: 0,
-        atividadesFeitas: 0,
-        diasDedicados: 0
-      },
-      modules: {} // Guardar o progresso de cada módulo aqui
+    let stats = {
+      questoesRespondidas: 0,
+      questoesCertas: 0,
+      horasDedicadas: 0,
+      atividadesFeitas: 0,
+      diasDedicados: 0
     };
 
-    if (userDoc.exists) {
-      const docData = userDoc.data();
-      // Mescla os dados existentes com a estrutura padrão para evitar erros
-      if (docData.stats) data.stats = { ...data.stats, ...docData.stats };
-      if (docData.modules) data.modules = docData.modules;
+    let modules = {}; // Guardar o progresso de cada módulo aqui
+    let diasSet = new Set();
+
+    // Processa as atividades da sub-collection
+    if (!activitiesSnapshot.empty) {
+      activitiesSnapshot.forEach(doc => {
+        const data = doc.data();
+        
+        // Atualiza estatísticas globais
+        stats.questoesRespondidas += (data.totalQuestions || 0);
+        stats.questoesCertas += (data.correctCount || 0);
+        stats.atividadesFeitas++;
+        
+        // Estima horas (15 min = 0.25h por atividade)
+        stats.horasDedicadas += 0.25;
+
+        // Adiciona o módulo aos concluídos
+        if (data.moduleId) {
+          modules[data.moduleId] = {
+            completed: true,
+            correct: data.correctCount || 0,
+            total: data.totalQuestions || 0,
+            lastDate: data.completedAt ? (data.completedAt.toDate ? data.completedAt.toDate().toISOString() : new Date(data.completedAt).toISOString()) : new Date().toISOString()
+          };
+        }
+
+        // Conta dias únicos
+        if (data.completedAt) {
+          const d = data.completedAt.toDate ? data.completedAt.toDate() : new Date(data.completedAt);
+          diasSet.add(d.toDateString());
+        }
+      });
+
+      stats.diasDedicados = diasSet.size;
+      stats.horasDedicadas = Math.round(stats.horasDedicadas * 10) / 10; // Arredonda para 1 casa decimal
     }
 
-    res.json(data);
+    res.json({ stats, modules });
   } catch (error) {
     console.error("Erro ao buscar métricas:", error);
     res.status(500).json({ message: 'Erro ao buscar métricas' });
   }
 };
 
-// 2. Salvar Progresso da Atividade (NOVO)
-const saveActivityProgress = async (req, res) => {
-  try {
-    const userId = req.userData.uid;
-    const { moduleId, correct, total, timeSpent } = req.body; 
-    // timeSpent em horas ou minutos, como preferires. Vamos assumir que vem algo para somar.
-
-    const userRef = db.collection('users').doc(userId);
-
-    await db.runTransaction(async (t) => {
-      const doc = await t.get(userRef);
-      let newStats = {
-        questoesRespondidas: 0,
-        questoesCertas: 0,
-        horasDedicadas: 0,
-        atividadesFeitas: 0,
-        diasDedicados: 1 // Começa com 1 dia se for novo
-      };
-      let modules = {};
-
-      if (doc.exists) {
-        const data = doc.data();
-        if (data.stats) newStats = { ...newStats, ...data.stats };
-        if (data.modules) modules = data.modules;
-      }
-
-      // Atualiza estatísticas globais
-      newStats.questoesRespondidas += total;
-      newStats.questoesCertas += correct;
-      if (timeSpent) newStats.horasDedicadas += timeSpent;
-      
-      // Verifica se este módulo já tinha sido feito antes para não contar "Atividade Feita" duplicada
-      // ou conta sempre que ele termina uma tentativa. Vamos contar sempre por enquanto:
-      newStats.atividadesFeitas += 1;
-
-      // Atualiza o módulo específico (Ex: Módulo 1)
-      modules[moduleId] = {
-        completed: true,
-        correct: correct,
-        total: total,
-        lastDate: new Date().toISOString()
-      };
-
-      t.set(userRef, { stats: newStats, modules: modules }, { merge: true });
-    });
-
-    res.json({ message: "Progresso salvo com sucesso!" });
-  } catch (error) {
-    console.error("Erro ao salvar progresso:", error);
-    res.status(500).json({ message: "Erro ao salvar progresso" });
-  }
-};
+// 2. Salvar Progresso da Atividade (REMOVIDO - FUNCIONALIDADE DUPLICADA)
+// NOTA: Esta função está duplicada com userController.saveQuizResult
+// Para evitar inconsistências, use apenas /api/user/save-quiz
 
 // 3. Obter Notas (Mantém-se igual, só certifica-te que está aqui)
 const getNotes = async (req, res) => {
@@ -105,15 +85,30 @@ const getNotes = async (req, res) => {
 
 // 4. Salvar Notas (Mantém-se igual)
 const saveNotes = async (req, res) => {
-    // ... (O teu código existente do saveNotes) ...
     try {
         const userId = req.userData.uid;
         const { content } = req.body;
+
+        // Validação
+        if (content === undefined || content === null) {
+            return res.status(400).json({ message: "Conteúdo das notas é obrigatório." });
+        }
+
+        if (typeof content !== 'string') {
+            return res.status(400).json({ message: "Conteúdo deve ser uma string." });
+        }
+
+        // Limite de tamanho (10MB)
+        if (content.length > 10 * 1024 * 1024) {
+            return res.status(400).json({ message: "Conteúdo muito grande (máximo 10MB)." });
+        }
+
         await db.collection('users').doc(userId).set({ notes: content }, { merge: true });
-        res.status(200).send('Notas salvas');
+        res.status(200).json({ message: 'Notas salvas com sucesso!' });
     } catch (error) {
-        res.status(500).send('Erro');
+        console.error("Erro ao salvar notas:", error);
+        res.status(500).json({ message: 'Erro ao salvar notas' });
     }
 };
 
-module.exports = { getMetrics, saveActivityProgress, getNotes, saveNotes };
+module.exports = { getMetrics, getNotes, saveNotes };

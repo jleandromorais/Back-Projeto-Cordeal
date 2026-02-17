@@ -7,7 +7,4 @@ router.get('/metrics', checkAuth, dashboardController.getMetrics);
 router.get('/notes', checkAuth, dashboardController.getNotes);
 router.post('/notes', checkAuth, dashboardController.saveNotes);
 
-// [NOVO] Rota para salvar o progresso das atividades
-router.post('/progress', checkAuth, dashboardController.saveActivityProgress);
-
 module.exports = router;
